@@ -1,0 +1,23 @@
+package Zoho.LibraryManagementSystem.Repository;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DatabaseConnector {
+    private static final String DB_URL = "jdbc:postgresql://localhost:5432/Library"; // Replace 'library_system_db'
+    private static final String DB_USER = "postgres"; // Replace with your username
+    private static final String DB_PASSWORD = "postgres123"; // Replace with your password
+
+    static {
+        try {
+            Class.forName("org.postgresql.Driver");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException("PostgreSQL JDBC Driver not found. Include it in your library path.", e);
+        }
+    }
+
+    public static Connection getConnection() throws SQLException {
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+    }
+}
