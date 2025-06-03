@@ -1,11 +1,9 @@
 package Zoho.LibraryManagementSystem.Service.Implementaion;
 
-import Zoho.LibraryManagementSystem.Model.Book;
-import Zoho.LibraryManagementSystem.Model.Fine;
-import Zoho.LibraryManagementSystem.Model.Member;
-import Zoho.LibraryManagementSystem.Model.Transaction;
+import Zoho.LibraryManagementSystem.Model.*;
 import Zoho.LibraryManagementSystem.Repository.DatabaseConnector;
 import Zoho.LibraryManagementSystem.Repository.LibraryDB;
+import Zoho.LibraryManagementSystem.Service.ReservationManagementService;
 import Zoho.LibraryManagementSystem.Service.TransactionManagementService;
 
 import java.math.BigDecimal;
@@ -19,9 +17,12 @@ import java.util.Optional;
 public class TransactionManagementServiceImpl implements TransactionManagementService {
     private final LibraryDB libraryDB;
     private static final int LOAN_PERIOD_DAYS = 14;
+    private final ReservationManagementService reservationService;
+    private static final BigDecimal FINE_PER_DAY = new BigDecimal("5.00");
 
-    public TransactionManagementServiceImpl(LibraryDB libraryDB) {
+    public TransactionManagementServiceImpl(LibraryDB libraryDB, ReservationManagementService reservationService) {
         this.libraryDB = libraryDB;
+        this.reservationService = reservationService; // NEW: Assign
     }
 
     /**
@@ -34,15 +35,26 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
         Connection conn = null;
         try {
             conn = DatabaseConnector.getConnection();
-            conn.setAutoCommit(false); // Start transaction
+            conn.setAutoCommit(false);
 
             Book book = libraryDB.findBookById(conn, bookId)
                     .orElseThrow(() -> new IllegalStateException("Book with ID " + bookId + " not found."));
 
             if (book.getCopiesAvailable() < 1) {
-                throw new IllegalStateException("No copies of '" + book.getTitle() + "' are available.");
+                // Before throwing, check if this member has an 'AVAILABLE' reservation for this specific book.
+                // If they do, and this borrow action is to fulfill it, copiesAvailable might be 0 if held.
+                // For now, this simple check assumes copiesAvailable is decremented only upon actual borrow.
+                // A more complex scenario might involve "holding" a copy.
+                Optional<Reservation> availableReservation = libraryDB.findSpecificReservationByMemberAndBook(conn, currentMember.getMemberId(), bookId, "AVAILABLE");
+                if (!availableReservation.isPresent()) { // No available reservation, and book is out of stock
+                    throw new IllegalStateException("No copies of '" + book.getTitle() + "' are available, and you do not have an active 'AVAILABLE' reservation for it.");
+                }
+                // If an 'AVAILABLE' reservation exists, proceed, the copy is implicitly held for them.
             }
 
+            // Prevent borrowing if an active loan already exists, unless this borrow fulfills a specific reservation
+            // and the previous active loan logic needs to be more nuanced.
+            // For simplicity, the original check is kept. If a member has an active loan, they can't borrow again.
             if (libraryDB.findActiveLoan(conn, currentMember.getMemberId(), bookId).isPresent()) {
                 throw new IllegalStateException("You already have an active loan for this book.");
             }
@@ -57,16 +69,30 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
             Transaction newLoan = new Transaction(currentMember.getMemberId(), bookId, borrowDate, dueDate);
             libraryDB.createLoanTransaction(conn, newLoan);
 
-            conn.commit(); // Commit both changes
-            System.out.println("Book '" + book.getTitle() + "' borrowed successfully. It is due on: " + dueDate);
+            // --- AUTOMATION LOGIC ---
+            // 3. Check for and fulfill an 'AVAILABLE' reservation for this member and book
+            Optional<Reservation> reservationToFulfill = libraryDB.findSpecificReservationByMemberAndBook(conn, currentMember.getMemberId(), bookId, "AVAILABLE");
+            if (reservationToFulfill.isPresent()) {
+                // Use the injected reservationService to update status (encapsulates logic better)
+                // However, to do this within the same DB transaction, reservationService.updateReservationStatus
+                // would need to accept a Connection object.
+                // For now, directly call libraryDB method to ensure atomicity with the borrow.
+                libraryDB.updateReservationStatus(conn, reservationToFulfill.get().getReservationId(), "FULFILLED");
+                System.out.println("Reservation ID " + reservationToFulfill.get().getReservationId() + " for this book has been automatically marked as FULFILLED.");
+            }
+            // --- END OF AUTOMATION LOGIC ---
+
+            conn.commit();
+            System.out.println("Book '" + book.getTitle() + "' borrowed successfully. Due on: " + dueDate);
 
         } catch (SQLException | IllegalStateException e) {
-            if (conn != null) conn.rollback(); // Rollback on any error
-            throw e; // Re-throw exception to be handled by the UI layer
+            if (conn != null) {
+                try { conn.rollback(); } catch (SQLException ex) { System.err.println("Error during rollback: " + ex.getMessage()); }
+            }
+            throw e;
         } finally {
             if (conn != null) {
-                conn.setAutoCommit(true);
-                conn.close();
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ex) { System.err.println("Error closing connection: " + ex.getMessage()); }
             }
         }
     }
@@ -121,8 +147,6 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
         }
     }
 
-    // --- Add these methods to your TransactionManagementService.java ---
-    private static final BigDecimal FINE_PER_DAY = new BigDecimal("5.00"); // Use BigDecimal for currency
 
     @Override
     public List<Transaction> getAllTransactions() throws SQLException {

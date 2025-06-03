@@ -482,6 +482,29 @@ public class LibraryDB {
         return Optional.empty();
     }
 
+    /**
+     * Finds a specific reservation for a member and book with a given status.
+     * @param conn A valid database connection.
+     * @param memberId The ID of the member.
+     * @param bookId The ID of the book.
+     * @param status The status of the reservation to look for (e.g., "AVAILABLE").
+     * @return An Optional containing the Reservation if found.
+     * @throws SQLException if a database error occurs.
+     */
+    public Optional<Reservation> findSpecificReservationByMemberAndBook(Connection conn, int memberId, int bookId, String status) throws SQLException {
+        String sql = "SELECT * FROM reservations WHERE member_id = ? AND book_id = ? AND status = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, memberId);
+            pstmt.setInt(2, bookId);
+            pstmt.setString(3, status);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return Optional.of(mapRowToReservation(rs)); // Assumes mapRowToReservation exists
+            }
+        }
+        return Optional.empty();
+    }
+
 
     // Helper method to map ResultSet row to Reservation object
     private Reservation mapRowToReservation(ResultSet rs) throws SQLException {
