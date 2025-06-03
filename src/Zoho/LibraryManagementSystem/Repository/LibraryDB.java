@@ -405,6 +405,95 @@ public class LibraryDB {
         }
     }
 
+    // --- Add these Reservation methods to your LibraryDB.java ---
+
+    public Reservation addReservation(Connection conn, Reservation reservation) throws SQLException {
+        String sql = "INSERT INTO reservations (book_id, member_id, reservation_date, status) VALUES (?, ?, ?, ?) RETURNING reservation_id";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, reservation.getBookId());
+            pstmt.setInt(2, reservation.getMemberId());
+            pstmt.setTimestamp(3, Timestamp.valueOf(reservation.getReservationDate()));
+            pstmt.setString(4, reservation.getStatus());
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                reservation.setReservationId(rs.getInt("reservation_id"));
+            }
+            return reservation;
+        }
+    }
+
+    public List<Reservation> findActiveReservationsByMember(Connection conn, int memberId) throws SQLException {
+        List<Reservation> reservations = new ArrayList<>();
+        // Assuming 'WAITING' and 'AVAILABLE' are considered active
+        String sql = "SELECT * FROM reservations WHERE member_id = ? AND (status = 'WAITING' OR status = 'AVAILABLE') ORDER BY reservation_date ASC";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, memberId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                reservations.add(mapRowToReservation(rs));
+            }
+        }
+        return reservations;
+    }
+
+    public List<Reservation> findAllActiveReservations(Connection conn) throws SQLException {
+        List<Reservation> reservations = new ArrayList<>();
+        String sql = "SELECT * FROM reservations WHERE status = 'WAITING' OR status = 'AVAILABLE' ORDER BY book_id, reservation_date ASC";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            while (rs.next()) {
+                reservations.add(mapRowToReservation(rs));
+            }
+        }
+        return reservations;
+    }
+
+    public Optional<Reservation> findNextWaitingReservationForBook(Connection conn, int bookId) throws SQLException {
+        String sql = "SELECT * FROM reservations WHERE book_id = ? AND status = 'WAITING' ORDER BY reservation_date ASC LIMIT 1";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, bookId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return Optional.of(mapRowToReservation(rs));
+            }
+        }
+        return Optional.empty();
+    }
+
+    public void updateReservationStatus(Connection conn, int reservationId, String newStatus) throws SQLException {
+        String sql = "UPDATE reservations SET status = ? WHERE reservation_id = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newStatus);
+            pstmt.setInt(2, reservationId);
+            pstmt.executeUpdate();
+        }
+    }
+
+    public Optional<Reservation> findActiveReservationByMemberAndBook(Connection conn, int memberId, int bookId) throws SQLException {
+        String sql = "SELECT * FROM reservations WHERE member_id = ? AND book_id = ? AND (status = 'WAITING' OR status = 'AVAILABLE')";
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, memberId);
+            pstmt.setInt(2, bookId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return Optional.of(mapRowToReservation(rs));
+            }
+        }
+        return Optional.empty();
+    }
+
+
+    // Helper method to map ResultSet row to Reservation object
+    private Reservation mapRowToReservation(ResultSet rs) throws SQLException {
+        return new Reservation(
+                rs.getInt("reservation_id"),
+                rs.getInt("book_id"),
+                rs.getInt("member_id"),
+                rs.getTimestamp("reservation_date").toLocalDateTime(),
+                rs.getString("status")
+        );
+    }
+
     private Book mapRowToBook(ResultSet rs) throws SQLException {
         Date pubDateSQL = rs.getDate("publication_date");
         LocalDate pubDate = (pubDateSQL != null) ? pubDateSQL.toLocalDate() : null;
