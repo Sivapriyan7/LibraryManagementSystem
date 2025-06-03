@@ -58,12 +58,10 @@ public class BookManagementServiceImpl implements BookManagementService {
         Connection conn = null;
         try {
             conn = DatabaseConnector.getConnection();
-            conn.setAutoCommit(false); // Start transaction
+            conn.setAutoCommit(false);
 
-            // 1. Add the core book details to get its generated ID
-            libraryDB.addBook(conn, newBook);
+            libraryDB.addBook(conn, newBook); // newBook object is already simpler
 
-            // 2. Handle authors
             for (String authorName : authorNames) {
                 if (authorName != null && !authorName.trim().isEmpty()) {
                     Author author = libraryDB.findOrCreateAuthorByName(conn, authorName.trim());
@@ -71,7 +69,6 @@ public class BookManagementServiceImpl implements BookManagementService {
                 }
             }
 
-            // 3. Handle subjects
             for (String subjectName : subjectNames) {
                 if (subjectName != null && !subjectName.trim().isEmpty()) {
                     Subject subject = libraryDB.findOrCreateSubjectByName(conn, subjectName.trim());
@@ -79,11 +76,11 @@ public class BookManagementServiceImpl implements BookManagementService {
                 }
             }
 
-            conn.commit(); // Commit all changes if successful
+            conn.commit();
             return newBook;
 
         } catch (SQLException e) {
-            if (conn != null) conn.rollback(); // Rollback on any error
+            if (conn != null) conn.rollback();
             throw e;
         } finally {
             if (conn != null) {

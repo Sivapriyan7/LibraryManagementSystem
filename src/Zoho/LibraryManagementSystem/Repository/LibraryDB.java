@@ -90,17 +90,15 @@ public class LibraryDB {
 
     // --- Book Methods ---
     public Book addBook(Connection conn, Book book) throws SQLException {
-        String sql = "INSERT INTO books (title, isbn, publisher, publication_date, page_count, description, total_copies, copies_available, times_borrowed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING book_id";
+        // Removed isbn, page_count, description, language, cover_image_url from SQL
+        String sql = "INSERT INTO books (title, publisher, publication_date, total_copies, copies_available, times_borrowed) VALUES (?, ?, ?, ?, ?, ?) RETURNING book_id";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, book.getTitle());
-            pstmt.setString(2, book.getIsbn());
-            pstmt.setString(3, book.getPublisher());
-            pstmt.setDate(4, book.getPublicationDate() != null ? Date.valueOf(book.getPublicationDate()) : null);
-            pstmt.setInt(5, book.getPageCount());
-            pstmt.setString(6, book.getDescription());
-            pstmt.setInt(7, book.getTotalCopies());
-            pstmt.setInt(8, book.getCopiesAvailable());
-            pstmt.setInt(9, 0);
+            pstmt.setString(2, book.getPublisher());
+            pstmt.setDate(3, book.getPublicationDate() != null ? Date.valueOf(book.getPublicationDate()) : null);
+            pstmt.setInt(4, book.getTotalCopies());
+            pstmt.setInt(5, book.getCopiesAvailable()); // Should be same as total for a new book
+            pstmt.setInt(6, 0); // New book hasn't been borrowed
 
             ResultSet rs = pstmt.executeQuery();
             if (rs.next()) {
@@ -158,18 +156,16 @@ public class LibraryDB {
     }
 
     public void updateBook(Connection conn, Book book) throws SQLException {
-        String sql = "UPDATE books SET title=?, isbn=?, publisher=?, publication_date=?, page_count=?, description=?, total_copies=?, copies_available=?, times_borrowed=? WHERE book_id=?";
+        // Removed isbn, page_count, description, language, cover_image_url from SQL
+        String sql = "UPDATE books SET title=?, publisher=?, publication_date=?, total_copies=?, copies_available=?, times_borrowed=? WHERE book_id=?";
         try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, book.getTitle());
-            pstmt.setString(2, book.getIsbn());
-            pstmt.setString(3, book.getPublisher());
-            pstmt.setDate(4, book.getPublicationDate() != null ? Date.valueOf(book.getPublicationDate()) : null);
-            pstmt.setInt(5, book.getPageCount());
-            pstmt.setString(6, book.getDescription());
-            pstmt.setInt(7, book.getTotalCopies());
-            pstmt.setInt(8, book.getCopiesAvailable());
-            pstmt.setInt(9, book.getTimesBorrowed());
-            pstmt.setInt(10, book.getBookId());
+            pstmt.setString(2, book.getPublisher());
+            pstmt.setDate(3, book.getPublicationDate() != null ? Date.valueOf(book.getPublicationDate()) : null);
+            pstmt.setInt(4, book.getTotalCopies());
+            pstmt.setInt(5, book.getCopiesAvailable());
+            pstmt.setInt(6, book.getTimesBorrowed());
+            pstmt.setInt(7, book.getBookId());
             pstmt.executeUpdate();
         }
     }
@@ -413,14 +409,12 @@ public class LibraryDB {
         Date pubDateSQL = rs.getDate("publication_date");
         LocalDate pubDate = (pubDateSQL != null) ? pubDateSQL.toLocalDate() : null;
 
+        // Removed isbn, page_count, description, language, cover_image_url from mapping
         return new Book(
                 rs.getInt("book_id"),
                 rs.getString("title"),
-                rs.getString("isbn"),
                 rs.getString("publisher"),
                 pubDate,
-                rs.getInt("page_count"),
-                rs.getString("description"),
                 rs.getInt("total_copies"),
                 rs.getInt("copies_available"),
                 rs.getInt("times_borrowed")

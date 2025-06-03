@@ -336,23 +336,23 @@ public class LibraryManagementSystem {
         try {
             System.out.print("Enter book title: ");
             String title = scanner.nextLine();
-            System.out.print("Enter ISBN (e.g., 978-3-16-148410-0): ");
-            String isbn = scanner.nextLine();
             System.out.print("Enter Publisher: ");
             String publisher = scanner.nextLine();
             LocalDate pubDate = getDateInput("Enter Publication Date (YYYY-MM-DD): ");
-            int pageCount = getNumericInput("Enter Page Count: ");
-            System.out.print("Enter Description: ");
-            String description = scanner.nextLine();
             int totalCopies = getNumericInput("Enter Total Copies: ");
 
-            System.out.print("Enter author(s) (comma-separated): ");
-            List<String> authorNames = Arrays.asList(scanner.nextLine().split(","));
+            // Removed prompts for: isbn, pageCount, description, language
 
-            System.out.print("Enter subject(s) (comma-separated): ");
-            List<String> subjectNames = Arrays.asList(scanner.nextLine().split(","));
+            System.out.print("Enter author(s) (comma-separated, press Enter if none): ");
+            String authorsInput = scanner.nextLine();
+            List<String> authorNames = Arrays.asList(authorsInput.split(","));
 
-            Book newBook = new Book(title, isbn, publisher, pubDate, pageCount, description, totalCopies);
+            System.out.print("Enter subject(s) (comma-separated, press Enter if none): ");
+            String subjectsInput = scanner.nextLine();
+            List<String> subjectNames = Arrays.asList(subjectsInput.split(","));
+
+            // Create Book object with the simplified constructor
+            Book newBook = new Book(title, publisher, pubDate, totalCopies);
             bookService.addBook(newBook, authorNames, subjectNames);
 
             System.out.println("Book added successfully! New Book ID: " + newBook.getBookId());
@@ -361,6 +361,7 @@ public class LibraryManagementSystem {
             System.err.println("Database error: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("An error occurred: " + e.getMessage());
+            e.printStackTrace(); // for debugging
         }
     }
 

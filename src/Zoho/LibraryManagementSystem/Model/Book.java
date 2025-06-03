@@ -7,31 +7,28 @@ import java.util.stream.Collectors;
 public class Book {
     private int bookId;
     private String title;
-    private String isbn;
+    // Removed: isbn, language, cover_image_url, page_count, description
     private String publisher;
     private LocalDate publicationDate;
-    private int pageCount;
-    private String description;
     private int totalCopies;
     private int copiesAvailable;
     private int timesBorrowed;
     private List<Author> authors;
     private List<Subject> subjects;
 
-    public Book(String title, String isbn, String publisher, LocalDate publicationDate, int pageCount, String description, int totalCopies) {
+    // MODIFIED: Constructor for service layer creation (removed fields)
+    public Book(String title, String publisher, LocalDate publicationDate, int totalCopies) {
         this.title = title;
-        this.isbn = isbn;
         this.publisher = publisher;
         this.publicationDate = publicationDate;
-        this.pageCount = pageCount;
-        this.description = description;
         this.totalCopies = totalCopies;
         this.copiesAvailable = totalCopies;
-        this.timesBorrowed = 0;
+        this.timesBorrowed = 0; // Default for new book
     }
 
-    public Book(int bookId, String title, String isbn, String publisher, LocalDate publicationDate, int pageCount, String description, int totalCopies, int copiesAvailable, int timesBorrowed) {
-        this(title, isbn, publisher, publicationDate, pageCount, description, totalCopies);
+    // MODIFIED: Full constructor for repository layer creation (removed fields)
+    public Book(int bookId, String title, String publisher, LocalDate publicationDate, int totalCopies, int copiesAvailable, int timesBorrowed) {
+        this(title, publisher, publicationDate, totalCopies); // Call the simpler constructor
         this.bookId = bookId;
         this.copiesAvailable = copiesAvailable;
         this.timesBorrowed = timesBorrowed;
@@ -52,20 +49,15 @@ public class Book {
         }
     }
 
+    // --- Getters and Setters ---
     public int getBookId() { return bookId; }
     public void setBookId(int bookId) { this.bookId = bookId; }
     public String getTitle() { return title; }
     public void setTitle(String title) { this.title = title; }
-    public String getIsbn() { return isbn; }
-    public void setIsbn(String isbn) { this.isbn = isbn; }
     public String getPublisher() { return publisher; }
     public void setPublisher(String publisher) { this.publisher = publisher; }
     public LocalDate getPublicationDate() { return publicationDate; }
     public void setPublicationDate(LocalDate publicationDate) { this.publicationDate = publicationDate; }
-    public int getPageCount() { return pageCount; }
-    public void setPageCount(int pageCount) { this.pageCount = pageCount; }
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
     public int getTotalCopies() { return totalCopies; }
     public void setTotalCopies(int totalCopies) { this.totalCopies = totalCopies; }
     public int getCopiesAvailable() { return copiesAvailable; }
@@ -79,8 +71,13 @@ public class Book {
 
     @Override
     public String toString() {
-        String authorString = (authors != null) ? authors.stream().map(Author::getAuthorName).collect(Collectors.joining(", ")) : "N/A";
-        String subjectString = (subjects != null) ? subjects.stream().map(Subject::getSubjectName).collect(Collectors.joining(", ")) : "N/A";
-        return "ID: " + bookId + " | Title: '" + title + "'\n  Authors: [" + authorString + "] | Subjects: [" + subjectString + "]\n  ISBN: " + isbn + " | Publisher: " + publisher + " | Available: " + copiesAvailable + "/" + totalCopies;
+        String authorString = (authors != null && !authors.isEmpty()) ? authors.stream().map(Author::getAuthorName).collect(Collectors.joining(", ")) : "N/A";
+        String subjectString = (subjects != null && !subjects.isEmpty()) ? subjects.stream().map(Subject::getSubjectName).collect(Collectors.joining(", ")) : "N/A";
+        String pubDateStr = (publicationDate != null) ? publicationDate.toString() : "N/A";
+
+        return "ID: " + bookId + " | Title: '" + title + "'\n" +
+                "  Authors: [" + authorString + "] | Subjects: [" + subjectString + "]\n" +
+                "  Publisher: " + (publisher != null ? publisher : "N/A") + " | Publication Date: " + pubDateStr + "\n" +
+                "  Available: " + copiesAvailable + "/" + totalCopies + " | Borrowed " + timesBorrowed + " time(s)";
     }
 }
