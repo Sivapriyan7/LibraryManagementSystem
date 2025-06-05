@@ -11,18 +11,26 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
-
+/**
+ * Implements the {@link BookManagementService} interface.
+ * This service handles all business logic related to book management,
+ * including creating books with their authors and subjects, retrieving book information,
+ * removing books, and updating stock levels. It uses {@link LibraryDB} for data persistence.
+ */
 public class BookManagementServiceImpl implements BookManagementService {
     private final LibraryDB libraryDB;
 
+    /**
+     * Constructs a BookManagementServiceImpl with the necessary data access object.
+     *
+     * @param libraryDB The {@link LibraryDB} instance for database operations.
+     */
     public BookManagementServiceImpl(LibraryDB libraryDB) {
         this.libraryDB = libraryDB;
     }
 
     /**
-     * Retrieves a list of all books from the library, fully populated with their authors and subjects.
-     * @return A list of Book objects.
-     * @throws SQLException if a database access error occurs.
+     * {@inheritDoc}
      */
     @Override
     public List<Book> getAllBooks() throws SQLException {
@@ -32,10 +40,7 @@ public class BookManagementServiceImpl implements BookManagementService {
     }
 
     /**
-     * Finds a single book by its ID.
-     * @param bookId The ID of the book to find.
-     * @return An Optional containing the Book if found.
-     * @throws SQLException if a database access error occurs.
+     * {@inheritDoc}
      */
     @Override
     public Optional<Book> findBookById(int bookId) throws SQLException {
@@ -45,13 +50,9 @@ public class BookManagementServiceImpl implements BookManagementService {
     }
 
     /**
-     * Adds a new book to the database, including finding/creating its authors and subjects
-     * and linking them in a single database transaction.
-     * @param newBook The Book object with core details.
-     * @param authorNames A list of author names for the book.
-     * @param subjectNames A list of subject names for the book.
-     * @return The created Book object, now with a database-generated ID.
-     * @throws SQLException if a database access error occurs.
+     * {@inheritDoc}
+     * This implementation ensures that adding a book and linking its authors and
+     * subjects are performed as a single atomic database transaction.
      */
     @Override
     public Book addBook(Book newBook, List<String> authorNames, List<String> subjectNames) throws SQLException {
@@ -91,10 +92,9 @@ public class BookManagementServiceImpl implements BookManagementService {
     }
 
     /**
-     * Removes a book from the system after checking business rules (e.g., no copies are on loan).
-     * @param bookId The ID of the book to remove.
-     * @throws SQLException if a database access error occurs.
-     * @throws IllegalStateException if a business rule is violated (e.g., book not found, copies on loan).
+     * {@inheritDoc}
+     * This implementation first retrieves the book to check if it has any copies currently on loan.
+     * If all copies are available (not loaned out), the book is removed.
      */
     @Override
     public void removeBook(int bookId) throws SQLException, IllegalStateException {
@@ -118,11 +118,9 @@ public class BookManagementServiceImpl implements BookManagementService {
     }
 
     /**
-     * Updates the total stock for a book after checking business rules.
-     * @param bookId The ID of the book to update.
-     * @param newTotalCopies The new total number of copies for the book.
-     * @throws SQLException if a database access error occurs.
-     * @throws IllegalStateException if a business rule is violated (e.g., book not found, new stock too low).
+     * {@inheritDoc}
+     * This implementation ensures that the new total stock is not less than the number
+     * of copies currently borrowed.
      */
     @Override
     public void updateBookStock(int bookId, int newTotalCopies) throws SQLException, IllegalStateException {

@@ -11,25 +11,33 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Implements the {@link MemberManagementService} interface.
+ * This service handles the business logic for managing library members,
+ * including registration, retrieval, and removal, ensuring data integrity
+ * and application of business rules (e.g., username uniqueness, checking for open loans).
+ * It uses {@link LibraryDB} for data persistence and {@link PasswordService} for security.
+ */
 public class MemberManagementServiceImpl implements MemberManagementService {
     private final LibraryDB libraryDB;
     private final PasswordService passwordService;
 
+    /**
+     * Constructs a MemberManagementServiceImpl with necessary dependencies.
+     *
+     * @param libraryDB The data access object for member data.
+     * @param passwordService The service for password hashing.
+     */
     public MemberManagementServiceImpl(LibraryDB libraryDB, PasswordService passwordService) {
         this.libraryDB = libraryDB;
         this.passwordService = passwordService;
     }
 
     /**
-     * Creates a new member, hashes their password, and saves them to the database.
-     * It checks for username uniqueness before proceeding.
-     * @param newMember The member object with all profile details (name, username, email, etc.).
-     * @param plainTextPassword The member's desired password in plain text.
-     * @return The created Member object, now including its database-generated ID.
-     * @throws SQLException if a database access error occurs.
-     * @throws IllegalStateException if the username is already taken.
+     * {@inheritDoc}
+     * This implementation ensures the username is unique and hashes the password
+     * before saving the new member to the database.
      */
-    // MODIFIED: Method signature now uses the Enum
     @Override
     public Member addMember(Member newMember, String plainTextPassword) throws SQLException, IllegalStateException {
         try (Connection conn = DatabaseConnector.getConnection()) {
@@ -45,11 +53,7 @@ public class MemberManagementServiceImpl implements MemberManagementService {
     }
 
     /**
-     * Finds a single member by their unique ID.
-     *
-     * @param memberId The ID of the member to find.
-     * @return An Optional containing the Member object if found, otherwise an empty Optional.
-     * @throws SQLException if a database access error occurs.
+     * {@inheritDoc}
      */
     @Override
     public Optional<Member> findMemberById(int memberId) throws SQLException {
@@ -59,9 +63,7 @@ public class MemberManagementServiceImpl implements MemberManagementService {
     }
 
     /**
-     * Retrieves a list of all members currently in the library system.
-     * @return A List of Member objects.
-     * @throws SQLException if a database access error occurs.
+     * {@inheritDoc}
      */
     @Override
     public List<Member> getAllMembers() throws SQLException {
@@ -71,10 +73,9 @@ public class MemberManagementServiceImpl implements MemberManagementService {
     }
 
     /**
-     * Removes a member from the system, but only if they have no outstanding books.
-     * @param memberId The ID of the member to remove.
-     * @throws SQLException if a database access error occurs.
-     * @throws IllegalStateException if the member has open borrows or is not found.
+     * {@inheritDoc}
+     * This implementation checks if the member has any outstanding loans
+     * before allowing removal.
      */
     @Override
     public void removeMember(int memberId) throws SQLException, IllegalStateException {

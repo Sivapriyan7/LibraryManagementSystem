@@ -14,21 +14,34 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Implements the {@link TransactionManagementService} interface.
+ * This service handles the core business logic for book loan transactions (borrowing and returning),
+ * viewing transaction history, and generating fines for overdue books.
+ * It ensures operations are atomic and business rules are enforced.
+ */
 public class TransactionManagementServiceImpl implements TransactionManagementService {
     private final LibraryDB libraryDB;
     private static final int LOAN_PERIOD_DAYS = 14;
     private final ReservationManagementService reservationService;
     private static final BigDecimal FINE_PER_DAY = new BigDecimal("5.00");
 
+    /**
+     * Constructs a TransactionManagementServiceImpl with necessary dependencies.
+     *
+     * @param libraryDB The data access object for database operations.
+     * @param reservationService The service for managing reservations, used to automate fulfillment.
+     */
     public TransactionManagementServiceImpl(LibraryDB libraryDB, ReservationManagementService reservationService) {
         this.libraryDB = libraryDB;
         this.reservationService = reservationService; // NEW: Assign
     }
 
     /**
-     * Handles the entire process of a member borrowing a book within a single database transaction.
-     * @param currentMember The member borrowing the book.
-     * @param bookId The ID of the book to be borrowed.
+     * {@inheritDoc}
+     * This implementation updates book stock, creates a loan record, and attempts to
+     * automatically fulfill any 'AVAILABLE' reservation for the member and book,
+     * all within a single database transaction.
      */
     @Override
     public void borrowBook(Member currentMember, int bookId) throws SQLException, IllegalStateException {
@@ -41,20 +54,13 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
                     .orElseThrow(() -> new IllegalStateException("Book with ID " + bookId + " not found."));
 
             if (book.getCopiesAvailable() < 1) {
-                // Before throwing, check if this member has an 'AVAILABLE' reservation for this specific book.
-                // If they do, and this borrow action is to fulfill it, copiesAvailable might be 0 if held.
-                // For now, this simple check assumes copiesAvailable is decremented only upon actual borrow.
-                // A more complex scenario might involve "holding" a copy.
+
                 Optional<Reservation> availableReservation = libraryDB.findSpecificReservationByMemberAndBook(conn, currentMember.getMemberId(), bookId, "AVAILABLE");
                 if (!availableReservation.isPresent()) { // No available reservation, and book is out of stock
                     throw new IllegalStateException("No copies of '" + book.getTitle() + "' are available, and you do not have an active 'AVAILABLE' reservation for it.");
                 }
-                // If an 'AVAILABLE' reservation exists, proceed, the copy is implicitly held for them.
             }
 
-            // Prevent borrowing if an active loan already exists, unless this borrow fulfills a specific reservation
-            // and the previous active loan logic needs to be more nuanced.
-            // For simplicity, the original check is kept. If a member has an active loan, they can't borrow again.
             if (libraryDB.findActiveLoan(conn, currentMember.getMemberId(), bookId).isPresent()) {
                 throw new IllegalStateException("You already have an active loan for this book.");
             }
@@ -69,18 +75,12 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
             Transaction newLoan = new Transaction(currentMember.getMemberId(), bookId, borrowDate, dueDate);
             libraryDB.createLoanTransaction(conn, newLoan);
 
-            // --- AUTOMATION LOGIC ---
             // 3. Check for and fulfill an 'AVAILABLE' reservation for this member and book
             Optional<Reservation> reservationToFulfill = libraryDB.findSpecificReservationByMemberAndBook(conn, currentMember.getMemberId(), bookId, "AVAILABLE");
             if (reservationToFulfill.isPresent()) {
-                // Use the injected reservationService to update status (encapsulates logic better)
-                // However, to do this within the same DB transaction, reservationService.updateReservationStatus
-                // would need to accept a Connection object.
-                // For now, directly call libraryDB method to ensure atomicity with the borrow.
                 libraryDB.updateReservationStatus(conn, reservationToFulfill.get().getReservationId(), "FULFILLED");
                 System.out.println("Reservation ID " + reservationToFulfill.get().getReservationId() + " for this book has been automatically marked as FULFILLED.");
             }
-            // --- END OF AUTOMATION LOGIC ---
 
             conn.commit();
             System.out.println("Book '" + book.getTitle() + "' borrowed successfully. Due on: " + dueDate);
@@ -98,9 +98,9 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
     }
 
     /**
-     * Handles the entire process of a member returning a book within a single database transaction.
-     * @param currentMember The member returning the book.
-     * @param bookId The ID of the book being returned.
+     * {@inheritDoc}
+     * This implementation updates book stock and marks the specified loan transaction
+     * as 'RETURNED' within a single database transaction.
      */
     @Override
     public void returnBook(Member currentMember, int bookId, int transactionId) throws SQLException, IllegalStateException {
@@ -147,7 +147,9 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
         }
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Transaction> getAllTransactions() throws SQLException {
         try (Connection conn = DatabaseConnector.getConnection()) {
@@ -155,6 +157,9 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public List<Transaction> getMyTransactions(Member currentMember) throws SQLException {
         try (Connection conn = DatabaseConnector.getConnection()) {
@@ -162,8 +167,11 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
         }
     }
 
-    // --- Add this method to your TransactionManagementService.java ---
-
+    /**
+     * {@inheritDoc}
+     * This implementation updates book stock and marks the specified loan transaction
+     * as 'RETURNED' within a single database transaction.
+     */
     @Override
     public Optional<Transaction> findTransactionById(int transactionId) throws SQLException {
         try (Connection conn = DatabaseConnector.getConnection()) {
@@ -171,12 +179,13 @@ public class TransactionManagementServiceImpl implements TransactionManagementSe
         }
     }
 
-// Also ensure you have a simple findMemberById in MemberManagementService
-// and findBookById in BookManagementService that can be called from the main class.
 
     /**
-     * Scans for overdue books and creates fines for them.
-     * @return The number of new fines that were created.
+     * {@inheritDoc}
+     * This implementation identifies overdue loans that haven't been fined yet,
+     * calculates the fine amount based on days overdue and a predefined rate,
+     * and creates new fine records in the database. It may also update the
+     * loan transaction status to 'OVERDUE'. This is performed in a transaction.
      */
     @Override
     public int generateFinesForOverdueBooks() throws SQLException {

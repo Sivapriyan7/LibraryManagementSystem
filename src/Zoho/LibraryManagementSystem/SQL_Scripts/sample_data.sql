@@ -2,15 +2,6 @@
 -- Ensure you are connected to the 'library_system_db' database before running this.
 -- \c library_system_db
 
--- Sample Members (Password is 'pass123' for alice, 'secure' for bob before hashing)
--- The application will hash these passwords upon creation through its UI.
--- For direct insertion, you'd insert the HASHED password.
--- For this example, let's assume these members would be created via the application UI.
--- If you want to pre-populate, you'd hash "pass123" and "secure" using your PasswordService
--- and insert those hashes.
--- Example: INSERT INTO members (name, username, password_hash, email, membership_type) VALUES ('Alice Smith', 'alice', '$2a$10$...hashed_pass123...', 'alice@example.com', 'STUDENT');
--- Example: INSERT INTO members (name, username, password_hash, email, membership_type) VALUES ('Bob Johnson', 'bob', '$2a$10$...hashed_secure...', 'bob@example.com', 'PUBLIC');
-
 -- Sample Authors
 INSERT INTO authors (author_name) VALUES ('F. Scott Fitzgerald'), ('Harper Lee'), ('George Orwell'), ('J.K. Rowling');
 

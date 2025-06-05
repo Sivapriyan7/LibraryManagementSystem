@@ -3,6 +3,10 @@ package Zoho.LibraryManagementSystem.Service.Implementaion;
 import Zoho.LibraryManagementSystem.Service.PasswordService;
 import org.mindrot.jbcrypt.BCrypt;
 
+/**
+ * Implements the {@link PasswordService} interface using the BCrypt algorithm
+ * for securely hashing and verifying passwords.
+ */
 public class PasswordServiceImpl implements PasswordService {
     /**
      * Hashes a plain-text password using BCrypt.

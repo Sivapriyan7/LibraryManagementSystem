@@ -3,6 +3,10 @@ package Zoho.LibraryManagementSystem.Model;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Represents a reservation placed by a member for a book that is currently unavailable.
+ * This class tracks the book, the member, the date of reservation, and its current status.
+ */
 public class Reservation {
     private int reservationId;
     private int bookId;
@@ -10,6 +14,13 @@ public class Reservation {
     private LocalDateTime reservationDate;
     private String status;
 
+    /**
+     * Constructs a new Reservation instance when a member places a reservation.
+     * The reservation date defaults to the current time and status to "WAITING".
+     *
+     * @param bookId The ID of the {@link Book} being reserved.
+     * @param memberId The ID of the {@link Member} placing the reservation.
+     */
     public Reservation(int bookId, int memberId) {
         this.bookId = bookId;
         this.memberId = memberId;
@@ -17,6 +28,16 @@ public class Reservation {
         this.status = "WAITING";
     }
 
+    /**
+     * Constructs a Reservation instance with all fields, typically used when reconstructing
+     * a reservation object from database data.
+     *
+     * @param reservationId The unique identifier for the reservation.
+     * @param bookId The ID of the book.
+     * @param memberId The ID of the member.
+     * @param reservationDate The date and time the reservation was placed.
+     * @param status The current status of the reservation.
+     */
     public Reservation(int reservationId, int bookId, int memberId, LocalDateTime reservationDate, String status) {
         this(bookId, memberId);
         this.reservationId = reservationId;
@@ -24,6 +45,7 @@ public class Reservation {
         this.status = status;
     }
 
+    // Getters and Setters
     public int getReservationId() { return reservationId; }
     public void setReservationId(int reservationId) { this.reservationId = reservationId; }
     public int getBookId() { return bookId; }

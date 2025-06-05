@@ -6,7 +6,7 @@ import Zoho.LibraryManagementSystem.Model.Enum.MembershipType;
 import Zoho.LibraryManagementSystem.Model.Reservation;
 import Zoho.LibraryManagementSystem.Model.Transaction;
 import Zoho.LibraryManagementSystem.Repository.LibraryDB;
-import Zoho.LibraryManagementSystem.Service.*; // Import all service interfaces
+import Zoho.LibraryManagementSystem.Service.*;
 import Zoho.LibraryManagementSystem.Service.Implementaion.*;
 import Zoho.LibraryManagementSystem.Service.ReservationManagementServiceImpl;
 
@@ -19,14 +19,32 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 
+
+/**
+ * Main class for the Library Management System application.
+ * This class is responsible for handling all user interactions, displaying menus,
+ * processing user input, and orchestrating calls to the various service layers
+ * to perform library operations. It acts as the presentation layer of the application.
+ */
 public class LibraryManagementSystem {
     private final Scanner scanner = new Scanner(System.in);
+    // Service dependencies, injected via the constructor
     private final AuthenticationService authService;
     private final MemberManagementService memberService;
     private final BookManagementService bookService;
     private final TransactionManagementService transactionService;
     private final ReservationManagementService reservationService;
 
+    /**
+     * Constructs the LibraryManagementSystem application with all necessary service dependencies.
+     * This uses dependency injection to decouple the main application logic from concrete service implementations.
+     *
+     * @param authService Service for handling user authentication.
+     * @param memberService Service for managing library members.
+     * @param bookService Service for managing books in the library.
+     * @param transactionService Service for handling loan transactions and fines.
+     * @param reservationService Service for managing book reservations.
+     */
     public LibraryManagementSystem(AuthenticationService authService, MemberManagementService memberService,
                                    BookManagementService bookService, TransactionManagementService transactionService,
                                    ReservationManagementService reservationService) {
@@ -37,9 +55,18 @@ public class LibraryManagementSystem {
         this.reservationService = reservationService;
     }
 
+    /**
+     * The main entry point for the Library Management System application.
+     * Initializes all dependencies (database repository, service implementations)
+     * and starts the application's primary interaction loop.
+     *
+     * @param args Command line arguments (not used by this application).
+     */
     public static void main(String[] args) {
         // --- Dependency Injection Setup ---
+        // Create the single instance of the database repository
         LibraryDB libraryDB = new LibraryDB();
+        // Create service implementations, injecting their dependencies
         PasswordService passwordService = new PasswordServiceImpl();
         AuthenticationService authService = new AuthenticationServiceImpl(libraryDB, passwordService);
         MemberManagementService memberService = new MemberManagementServiceImpl(libraryDB, passwordService);
@@ -47,12 +74,17 @@ public class LibraryManagementSystem {
         ReservationManagementService reservationService = new ReservationManagementServiceImpl(libraryDB);
         TransactionManagementService transactionService = new TransactionManagementServiceImpl(libraryDB,reservationService);
 
+        // Create the main application instance with all injected services
         LibraryManagementSystem app = new LibraryManagementSystem(authService, memberService, bookService, transactionService, reservationService);
 
         System.out.println("Welcome to the Advanced Library Management System!");
+        // Start the main application loop
         app.run();
     }
-
+    /**
+     * Runs the main application loop, displaying the top-level menu and directing
+     * user choices to the appropriate login methods or exiting the application.
+     */
     public void run() {
         while (true) {
             System.out.println("\n--- Main Menu ---");
@@ -79,7 +111,11 @@ public class LibraryManagementSystem {
             }
         }
     }
-
+    /**
+     * Handles the librarian login process. Prompts for username and password,
+     * authenticates using the {@link AuthenticationService}, and upon success,
+     * navigates to the librarian menu.
+     */
     private void librarianLogin() {
         System.out.println("\n--- Librarian Login ---");
         System.out.print("Username: ");
@@ -94,7 +130,11 @@ public class LibraryManagementSystem {
             System.out.println("Invalid librarian credentials.");
         }
     }
-
+    /**
+     * Displays the main menu for logged-in librarians, allowing them to navigate
+     * to various management sub-menus (members, books, transactions, reservations, fines)
+     * or log out.
+     */
     private void librarianMenu() {
         while (true) {
             System.out.println("\n--- Librarian Menu ---");
@@ -118,7 +158,10 @@ public class LibraryManagementSystem {
             }
         }
     }
-
+    /**
+     * Displays the menu for managing library members.
+     * Allows librarians to view, add, or remove members.
+     */
     private void manageMembersMenu() {
         while (true) {
             System.out.println("\n--- Manage Members ---");
@@ -138,7 +181,10 @@ public class LibraryManagementSystem {
             }
         }
     }
-
+    /**
+     * Displays the menu for managing library books.
+     * Allows librarians to view, add, remove books, or update book stock.
+     */
     private void manageBooksMenu() {
         while (true) {
             System.out.println("\n--- Manage Books ---");
@@ -160,7 +206,10 @@ public class LibraryManagementSystem {
             }
         }
     }
-
+    /**
+     * Displays the menu for managing library loan transactions.
+     * Allows librarians to view all transactions or search for a specific transaction by ID.
+     */
     private void manageTransactionsMenu() {
         while (true) {
             System.out.println("\n--- Transaction Management ---");
@@ -178,14 +227,17 @@ public class LibraryManagementSystem {
             }
         }
     }
-
+    /**
+     * Displays the menu for managing book reservations.
+     * Allows librarians to view all active reservations and notify members
+     * when a reserved book becomes available.
+     */
     private void manageReservationsMenu() {
         while (true) {
             System.out.println("\n--- Manage Reservations ---");
             System.out.println("1. View All Active Reservations");
             System.out.println("2. Notify Next Member for Available Book (Mark as AVAILABLE)");
             System.out.println("3. Manually Fulfill Reservation (Mark as FULFILLED)");
-            // This option is now less critical but can be kept for manual overrides or fixing issues.
             System.out.println("4. Back to Librarian Menu");
             System.out.print("Choose an option: ");
             String choice = scanner.nextLine();
@@ -193,13 +245,16 @@ public class LibraryManagementSystem {
             switch (choice) {
                 case "1": viewAllActiveReservations(); break;
                 case "2": notifyNextMemberForBook(); break;
-                case "3": fulfillReservationManually(); break; // Renamed for clarity
+                case "3": fulfillReservationManually(); break;
                 case "4": return;
                 default: System.out.println("Invalid option. Please try again.");
             }
         }
     }
-
+    /**
+     * Triggers the process to scan for overdue books and generate fines.
+     * Intended for librarian use. Uses the {@link TransactionManagementService}.
+     */
     private void generateFines() {
         try {
             System.out.println("\n--- Generate Fines ---");
@@ -215,7 +270,14 @@ public class LibraryManagementSystem {
         }
     }
 
-    private void fulfillReservationManually() { // Renamed from fulfillReservation
+    /**
+     * Handles the UI for a librarian to manually mark a reservation as 'FULFILLED'.
+     * This is typically done after a member borrows a book for which they had an
+     * 'AVAILABLE' reservation, though the borrowing process now automates this.
+     * This serves as a manual override or for specific cases.
+     * Uses the {@link ReservationManagementService}.
+     */
+    private void fulfillReservationManually() {
         System.out.println("\n--- Manually Fulfill a Reservation ---");
         System.out.println("NOTE: Borrowing a book for which a member has an 'AVAILABLE' reservation now AUTOMATICALLY fulfills it.");
         System.out.println("This option is for manual overrides or specific cases.");
@@ -229,7 +291,11 @@ public class LibraryManagementSystem {
             System.err.println("Error: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the member login process. Prompts for username and password,
+     * authenticates using the {@link AuthenticationService}, and upon success,
+     * navigates to the member menu.
+     */
     private void memberLogin() {
         System.out.println("\n--- Member Login ---");
         System.out.print("Username: ");
@@ -250,7 +316,12 @@ public class LibraryManagementSystem {
             System.err.println("Database error during login: " + e.getMessage());
         }
     }
-
+    /**
+     * Displays the main menu for logged-in members.
+     * Allows members to borrow/return books, view their transactions,
+     * manage their reservations, view all books, or log out.
+     * @param currentMember The currently logged-in {@link Member} object.
+     */
     private void memberMenu(Member currentMember) {
         while (true) {
             System.out.println("\n--- Member Menu (" + currentMember.getName() + ") ---");
@@ -278,6 +349,10 @@ public class LibraryManagementSystem {
     }
 
     // --- UI Methods for Book Management ---
+    /**
+     * Retrieves and displays all books currently in the library catalog.
+     * Uses the {@link BookManagementService}.
+     */
     private void viewAllBooks() {
         try {
             List<Book> books = bookService.getAllBooks();
@@ -291,7 +366,11 @@ public class LibraryManagementSystem {
             System.err.println("Database error viewing books: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for adding a new book to the library.
+     * Prompts the librarian for book details (title, publisher, authors, subjects, etc.)
+     * and then calls the {@link BookManagementService} to add the book.
+     */
     private void addBook() {
         try {
             System.out.println("\n--- Add New Book ---");
@@ -310,7 +389,7 @@ public class LibraryManagementSystem {
             String subjectsInput = scanner.nextLine();
             List<String> subjectNames = Arrays.asList(subjectsInput.split("\\s*,\\s*"));
 
-            Book newBook = new Book(title, publisher, pubDate, totalCopies); // Uses the simplified constructor
+            Book newBook = new Book(title, publisher, pubDate, totalCopies);
             bookService.addBook(newBook, authorNames, subjectNames);
 
             System.out.println("Book added successfully! New Book ID: " + newBook.getBookId());
@@ -321,7 +400,11 @@ public class LibraryManagementSystem {
             System.err.println("An error occurred while adding book: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for removing a book from the library.
+     * Prompts the librarian for the book ID and calls the {@link BookManagementService}
+     * to remove the book, after business rule checks (e.g., no copies on loan).
+     */
     private void removeBook() {
         try {
             System.out.println("\n--- Remove Book ---");
@@ -331,10 +414,15 @@ public class LibraryManagementSystem {
         } catch (SQLException e) {
             System.err.println("Database error removing book: " + e.getMessage());
         } catch (IllegalStateException e) {
-            System.err.println(e.getMessage()); // Service method provides user-friendly error
+            System.err.println(e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for updating the stock (total copies) of a book.
+     * Prompts the librarian for the book ID and the new stock count, then calls
+     * the {@link BookManagementService}. Business rules prevent reducing stock
+     * below the number of currently borrowed copies.
+     */
     private void updateBookStock() {
         try {
             System.out.println("\n--- Update Book Stock ---");
@@ -345,11 +433,15 @@ public class LibraryManagementSystem {
         } catch (SQLException e) {
             System.err.println("Database error updating stock: " + e.getMessage());
         } catch (IllegalStateException e) {
-            System.err.println(e.getMessage()); // Service method provides user-friendly error
+            System.err.println(e.getMessage());
         }
     }
 
     // --- UI Methods for Member Management ---
+    /**
+     * Retrieves and displays a list of all registered library members.
+     * Uses the {@link MemberManagementService}.
+     */
     private void viewAllMembers() {
         try {
             List<Member> members = memberService.getAllMembers();
@@ -363,7 +455,11 @@ public class LibraryManagementSystem {
             System.err.println("Database error viewing members: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for adding a new member to the library system.
+     * Prompts the librarian for member details and password, then calls the
+     * {@link MemberManagementService} to register the member.
+     */
     private void addMember() {
         try {
             System.out.println("\n--- Add New Member ---");
@@ -403,7 +499,11 @@ public class LibraryManagementSystem {
             System.err.println("Error: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for removing a member from the system.
+     * Prompts the librarian for the member ID and calls the {@link MemberManagementService}.
+     * Business rules prevent removing members with outstanding loans.
+     */
     private void removeMember() {
         try {
             System.out.println("\n--- Remove Member ---");
@@ -418,20 +518,31 @@ public class LibraryManagementSystem {
     }
 
     // --- UI Methods for Transactions and Fines ---
+    /**
+     * Handles the UI for a member borrowing a book.
+     * Prompts for the book ID and calls the {@link TransactionManagementService}.
+     * This process also automatically fulfills 'AVAILABLE' reservations for the member and book.
+     * @param currentMember The member performing the borrow action.
+     */
     private void borrowBook(Member currentMember) {
         try {
             System.out.println("\n--- Borrow Book ---");
             System.out.println("You can view your active transactions under 'View My Transactions' to get the Transaction ID for returning.");
             int bookId = getNumericInput("Enter Book ID to borrow: ");
             transactionService.borrowBook(currentMember, bookId);
-            // Success message is printed inside the service method
+
         } catch (SQLException e) {
             System.err.println("Database error during borrow operation: " + e.getMessage());
         } catch (IllegalStateException e) {
             System.err.println("Could not borrow book. Reason: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for a member returning a book.
+     * Prompts for the book ID and the specific transaction ID of the loan,
+     * then calls the {@link TransactionManagementService}.
+     * @param currentMember The member performing the return action.
+     */
     private void returnBook(Member currentMember) {
         try {
             System.out.println("\n--- Return Book ---");
@@ -440,14 +551,17 @@ public class LibraryManagementSystem {
             int transactionId = getNumericInput("Enter the Transaction ID from your loan (view 'My Transactions'): ");
 
             transactionService.returnBook(currentMember, bookId, transactionId);
-            // Success message is printed inside the service method
+
         } catch (SQLException e) {
             System.err.println("Database error during return operation: " + e.getMessage());
         } catch (IllegalStateException e) {
             System.err.println("Could not return book. Reason: " + e.getMessage());
         }
     }
-
+    /**
+     * Retrieves and displays all loan transactions in the system.
+     * Intended for librarian use. Uses the {@link TransactionManagementService}.
+     */
     private void viewAllTransactions() {
         try {
             List<Transaction> transactions = transactionService.getAllTransactions();
@@ -461,7 +575,11 @@ public class LibraryManagementSystem {
             System.err.println("Database error viewing transactions: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for searching a specific transaction by its ID.
+     * Displays detailed information about the transaction, including associated
+     * member name and book title. Uses multiple services.
+     */
     private void searchTransactionById() {
         try {
             System.out.println("\n--- Search Transaction ---");
@@ -485,7 +603,11 @@ public class LibraryManagementSystem {
             System.err.println("Database error searching for transaction: " + e.getMessage());
         }
     }
-
+    /**
+     * Retrieves and displays the transaction history for the currently logged-in member.
+     * Uses the {@link TransactionManagementService}.
+     * @param currentMember The currently logged-in member.
+     */
     private void viewMyTransactions(Member currentMember) {
         try {
             List<Transaction> transactions = transactionService.getMyTransactions(currentMember);
@@ -502,6 +624,11 @@ public class LibraryManagementSystem {
 
 
     // --- UI Methods for Reservations ---
+    /**
+     * Handles the UI for a member placing a reservation for a book.
+     * Prompts for the book ID and calls the {@link ReservationManagementService}.
+     * @param currentMember The member placing the reservation.
+     */
     private void placeReservation(Member currentMember) {
         try {
             System.out.println("\n--- Place Reservation ---");
@@ -514,7 +641,11 @@ public class LibraryManagementSystem {
             System.err.println("Could not place reservation: " + e.getMessage());
         }
     }
-
+    /**
+     * Retrieves and displays the active reservations for the currently logged-in member.
+     * Uses the {@link ReservationManagementService}.
+     * @param currentMember The currently logged-in member.
+     */
     private void viewMyActiveReservations(Member currentMember) {
         try {
             List<Reservation> reservations = reservationService.getMyActiveReservations(currentMember);
@@ -532,7 +663,10 @@ public class LibraryManagementSystem {
             System.err.println("Database error viewing your reservations: " + e.getMessage());
         }
     }
-
+    /**
+     * Retrieves and displays all active reservations in the system.
+     * Intended for librarian use. Uses the {@link ReservationManagementService}.
+     */
     private void viewAllActiveReservations() {
         try {
             List<Reservation> reservations = reservationService.getAllActiveReservations();
@@ -552,7 +686,11 @@ public class LibraryManagementSystem {
             System.err.println("Database error viewing all reservations: " + e.getMessage());
         }
     }
-
+    /**
+     * Handles the UI for notifying the next member in the queue for a reserved book
+     * that has become available. Allows the librarian to update the reservation status
+     * to 'AVAILABLE'. Uses the {@link ReservationManagementService}.
+     */
     private void notifyNextMemberForBook() {
         try {
             System.out.println("\n--- Notify Next Member for Reservation ---");
@@ -583,6 +721,12 @@ public class LibraryManagementSystem {
     }
 
     // --- Input Helper Methods ---
+    /**
+     * Prompts the user for numeric input and ensures an integer is entered.
+     * Loops until valid input is received.
+     * @param prompt The message to display to the user.
+     * @return The validated integer input from the user.
+     */
     private int getNumericInput(String prompt) {
         while (true) {
             try {
@@ -593,7 +737,12 @@ public class LibraryManagementSystem {
             }
         }
     }
-
+    /**
+     * Prompts the user for date input in "YYYY-MM-DD" format and ensures a valid date is entered.
+     * Loops until valid input is received.
+     * @param prompt The message to display to the user.
+     * @return The validated {@link LocalDate} input from the user.
+     */
     private LocalDate getDateInput(String prompt) {
         while (true) {
             try {

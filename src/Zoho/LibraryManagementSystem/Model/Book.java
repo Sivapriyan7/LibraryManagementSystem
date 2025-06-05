@@ -4,10 +4,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Represents a book in the library's catalog.
+ * This class holds all details pertinent to a book, including its title,
+ * publishing information, stock levels, and associations with authors and subjects.
+ */
 public class Book {
     private int bookId;
     private String title;
-    // Removed: isbn, language, cover_image_url, page_count, description
     private String publisher;
     private LocalDate publicationDate;
     private int totalCopies;
@@ -16,7 +20,15 @@ public class Book {
     private List<Author> authors;
     private List<Subject> subjects;
 
-    // MODIFIED: Constructor for service layer creation (removed fields)
+    /**
+     * Constructs a new Book instance, typically used when adding a new book to the system
+     * before it has been assigned a database ID.
+     *
+     * @param title The title of the book.
+     * @param publisher The publisher of the book.
+     * @param publicationDate The date the book was published.
+     * @param totalCopies The total number of copies of this book owned by the library.
+     */
     public Book(String title, String publisher, LocalDate publicationDate, int totalCopies) {
         this.title = title;
         this.publisher = publisher;
@@ -26,7 +38,18 @@ public class Book {
         this.timesBorrowed = 0; // Default for new book
     }
 
-    // MODIFIED: Full constructor for repository layer creation (removed fields)
+    /**
+     * Constructs a Book instance with all fields, typically used when reconstructing
+     * a book object from database data.
+     *
+     * @param bookId The unique identifier for the book.
+     * @param title The title of the book.
+     * @param publisher The publisher of the book.
+     * @param publicationDate The date the book was published.
+     * @param totalCopies The total number of copies.
+     * @param copiesAvailable The number of copies currently available for loan.
+     * @param timesBorrowed The total number of times this book has been borrowed.
+     */
     public Book(int bookId, String title, String publisher, LocalDate publicationDate, int totalCopies, int copiesAvailable, int timesBorrowed) {
         this(title, publisher, publicationDate, totalCopies); // Call the simpler constructor
         this.bookId = bookId;
@@ -34,6 +57,13 @@ public class Book {
         this.timesBorrowed = timesBorrowed;
     }
 
+    /**
+     * Decrements the available copies count by one and increments the times borrowed count.
+     * This simulates a book being borrowed.
+     *
+     * @return {@code true} if a copy was successfully borrowed (i.e., copies were available),
+     * {@code false} otherwise.
+     */
     public boolean borrowCopy() {
         if (copiesAvailable > 0) {
             copiesAvailable--;
@@ -43,6 +73,10 @@ public class Book {
         return false;
     }
 
+    /**
+     * Increments the available copies count by one, if it's less than the total copies.
+     * This simulates a book being returned.
+     */
     public void returnCopy() {
         if (copiesAvailable < totalCopies) {
             copiesAvailable++;
