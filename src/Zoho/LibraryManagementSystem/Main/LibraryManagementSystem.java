@@ -119,60 +119,6 @@ public class LibraryManagementSystem {
         }
     }
 
-    private void manageTransactionsMenu() {
-        while (true) {
-            System.out.println("\n--- Transaction Management ---");
-            System.out.println("1. View all transactions");
-            System.out.println("2. Search Transaction by ID");
-            System.out.println("3. Back to Librarian Menu");
-            System.out.print("Choose an option: ");
-            String choice = scanner.nextLine();
-
-            switch(choice) {
-                case "1": viewAllTransactions(); break;
-                case "2": searchTransactionById(); break;
-                case "3": return;
-                default: System.out.println("Invalid option. Please try again.");
-            }
-        }
-    }
-
-    private void manageReservationsMenu() {
-        while (true) {
-            System.out.println("\n--- Manage Reservations ---");
-            System.out.println("1. View All Active Reservations");
-            System.out.println("2. Notify Next Member for Available Book (Mark as AVAILABLE)");
-            System.out.println("3. Manually Fulfill Reservation (Mark as FULFILLED)");
-            // This option is now less critical but can be kept for manual overrides or fixing issues.
-            System.out.println("4. Back to Librarian Menu");
-            System.out.print("Choose an option: ");
-            String choice = scanner.nextLine();
-
-            switch (choice) {
-                case "1": viewAllActiveReservations(); break;
-                case "2": notifyNextMemberForBook(); break;
-                case "3": fulfillReservationManually(); break; // Renamed for clarity
-                case "4": return;
-                default: System.out.println("Invalid option. Please try again.");
-            }
-        }
-    }
-
-    private void fulfillReservationManually() { // Renamed from fulfillReservation
-        System.out.println("\n--- Manually Fulfill a Reservation ---");
-        System.out.println("NOTE: Borrowing a book for which a member has an 'AVAILABLE' reservation now AUTOMATICALLY fulfills it.");
-        System.out.println("This option is for manual overrides or specific cases.");
-        try {
-            int reservationId = getNumericInput("Enter the Reservation ID to mark as FULFILLED: ");
-            reservationService.updateReservationStatus(reservationId, "FULFILLED");
-            System.out.println("Reservation ID " + reservationId + " has been successfully marked as FULFILLED.");
-        } catch (SQLException e) {
-            System.err.println("Database error fulfilling reservation: " + e.getMessage());
-        } catch (IllegalStateException e) {
-            System.err.println("Error: " + e.getMessage());
-        }
-    }
-
     private void manageMembersMenu() {
         while (true) {
             System.out.println("\n--- Manage Members ---");
@@ -212,6 +158,75 @@ public class LibraryManagementSystem {
                 case "5": return;
                 default: System.out.println("Invalid option. Please try again.");
             }
+        }
+    }
+
+    private void manageTransactionsMenu() {
+        while (true) {
+            System.out.println("\n--- Transaction Management ---");
+            System.out.println("1. View all transactions");
+            System.out.println("2. Search Transaction by ID");
+            System.out.println("3. Back to Librarian Menu");
+            System.out.print("Choose an option: ");
+            String choice = scanner.nextLine();
+
+            switch(choice) {
+                case "1": viewAllTransactions(); break;
+                case "2": searchTransactionById(); break;
+                case "3": return;
+                default: System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private void manageReservationsMenu() {
+        while (true) {
+            System.out.println("\n--- Manage Reservations ---");
+            System.out.println("1. View All Active Reservations");
+            System.out.println("2. Notify Next Member for Available Book (Mark as AVAILABLE)");
+            System.out.println("3. Manually Fulfill Reservation (Mark as FULFILLED)");
+            // This option is now less critical but can be kept for manual overrides or fixing issues.
+            System.out.println("4. Back to Librarian Menu");
+            System.out.print("Choose an option: ");
+            String choice = scanner.nextLine();
+
+            switch (choice) {
+                case "1": viewAllActiveReservations(); break;
+                case "2": notifyNextMemberForBook(); break;
+                case "3": fulfillReservationManually(); break; // Renamed for clarity
+                case "4": return;
+                default: System.out.println("Invalid option. Please try again.");
+            }
+        }
+    }
+
+    private void generateFines() {
+        try {
+            System.out.println("\n--- Generate Fines ---");
+            System.out.println("Scanning for overdue books and generating fines...");
+            int finesCreated = transactionService.generateFinesForOverdueBooks();
+            if (finesCreated > 0) {
+                System.out.println("Successfully created " + finesCreated + " new fine(s).");
+            } else {
+                System.out.println("No new overdue books found to fine.");
+            }
+        } catch (SQLException e) {
+            System.err.println("Database error while generating fines: " + e.getMessage());
+        }
+    }
+
+    private void fulfillReservationManually() { // Renamed from fulfillReservation
+        System.out.println("\n--- Manually Fulfill a Reservation ---");
+        System.out.println("NOTE: Borrowing a book for which a member has an 'AVAILABLE' reservation now AUTOMATICALLY fulfills it.");
+        System.out.println("This option is for manual overrides or specific cases.");
+        try {
+            int reservationId = getNumericInput("Enter the Reservation ID to mark as FULFILLED: ");
+            reservationService.updateReservationStatus(reservationId, "FULFILLED");
+            System.out.println("Reservation ID " + reservationId + " has been successfully marked as FULFILLED.");
+        } catch (SQLException e) {
+            System.err.println("Database error fulfilling reservation: " + e.getMessage());
+        } catch (IllegalStateException e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
@@ -485,20 +500,6 @@ public class LibraryManagementSystem {
         }
     }
 
-    private void generateFines() {
-        try {
-            System.out.println("\n--- Generate Fines ---");
-            System.out.println("Scanning for overdue books and generating fines...");
-            int finesCreated = transactionService.generateFinesForOverdueBooks();
-            if (finesCreated > 0) {
-                System.out.println("Successfully created " + finesCreated + " new fine(s).");
-            } else {
-                System.out.println("No new overdue books found to fine.");
-            }
-        } catch (SQLException e) {
-            System.err.println("Database error while generating fines: " + e.getMessage());
-        }
-    }
 
     // --- UI Methods for Reservations ---
     private void placeReservation(Member currentMember) {
